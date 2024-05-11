@@ -1,0 +1,336 @@
+#include <iostream>
+#include <malloc.h> 
+
+using namespace std;
+
+struct empresa {
+    char nombreEmpresa[25];
+    int codigoRNT;
+    int year;
+    int mes;
+    int dia;
+    empresa *izq;
+    empresa *der;
+};
+
+empresa *raizC = NULL, *raizF = NULL, *aux, *aux2; 
+
+// Recursiva para posicionar una empresa en el arbol
+void posicionarRNT(empresa *aux, empresa *aux2){
+    if(aux->codigoRNT < aux2->codigoRNT){
+        if(aux2->izq == NULL){
+            aux2->izq = aux;
+        } else {
+            aux2 = aux2->izq;
+            posicionarRNT(aux, aux2);
+        }
+    } else {
+        if(aux2->der == NULL){
+            aux2->der = aux;
+        } else {
+            aux2 = aux2->der;
+            posicionarRNT(aux, aux2);
+        }
+    }
+}
+
+void posicionarFecha(empresa* aux, empresa* aux2){
+    if(aux->year < aux2->year){
+        if(aux2->izq!=NULL){
+            aux2=aux2->izq;
+            posicionarFecha(aux,aux2);
+        }
+        else 
+            aux2->izq=aux;      
+    }
+    else if(aux->year > aux2->year){
+        if (aux2->der!=NULL){
+            aux2=aux2->der;
+            posicionarFecha(aux,aux2);
+        }
+        else 
+            aux2->der=aux;
+    }
+    else {
+        // Si los años son iguales, compara los meses
+        if(aux->mes < aux2->mes){
+            if(aux2->izq!=NULL){
+                aux2=aux2->izq;
+                posicionarFecha(aux, aux2);
+            }
+            else 
+                aux2->izq= aux;
+        }
+        else if(aux->mes > aux2->mes){
+            if(aux2->der!=NULL){
+                aux2=aux2->der;
+                posicionarFecha(aux, aux2);
+            }
+            else 
+                aux2->der=aux;
+        }
+        else {
+            // Si los meses son iguales, compara los dias
+            if(aux->dia < aux2->dia){
+                if(aux2->izq!=NULL){
+                    aux2=aux2->izq;
+                    posicionarFecha(aux, aux2);
+                }
+                else 
+                    aux2->izq=aux;
+            }
+            else if(aux->dia > aux2->dia){
+                if(aux2->der!=NULL){
+                    aux2=aux2->der;
+                    posicionarFecha(aux, aux2);
+                }
+                else
+                    aux2->der=aux;
+            }
+        }
+    }
+}
+
+empresa* buscarPadre(empresa *raiz, empresa *nodo){
+    if (raiz == NULL || raiz == nodo)
+        return NULL;
+    
+    if ((raiz->izq == nodo) || (raiz->der == nodo))
+        return raiz;
+
+    if (nodo->codigoRNT < raiz->codigoRNT)
+        return buscarPadre(raiz->izq, nodo);
+    else
+        return buscarPadre(raiz->der, nodo);
+}
+
+empresa* buscarNodo(empresa *raiz, int codigo) {
+    if (raiz == NULL || raiz->codigoRNT == codigo)
+        return raiz;
+
+    if (raiz->codigoRNT < codigo)
+        return buscarNodo(raiz->der, codigo);
+    else
+        return buscarNodo(raiz->izq, codigo);
+}
+
+empresa* minimoValorNodo(empresa *nodo) {
+    empresa *actual = nodo;
+    while (actual->izq != NULL)
+        actual = actual->izq;
+    return actual;
+}
+
+void eliminarNodo(empresa *&raiz, int codigo) {
+    if (raiz == NULL)
+        return;
+
+    empresa *nodo = buscarNodo(raiz, codigo);
+
+    if (nodo == NULL)
+        return;
+
+    empresa *padre = buscarPadre(raiz, nodo);
+
+    // Caso 1: El nodo no tiene hijos
+    if (nodo->izq == NULL && nodo->der == NULL) {
+        if (padre) {
+            if (padre->izq == nodo)
+                padre->izq = NULL;
+            else
+                padre->der = NULL;
+        } else {
+            raiz = NULL;
+        }
+        free(nodo);
+    }
+    // Caso 2: El nodo tiene un hijo
+    else if (nodo->izq == NULL) {
+        empresa *temp = nodo->der;
+        if (padre) {
+            if (padre->izq == nodo)
+                padre->izq = temp;
+            else
+                padre->der = temp;
+        } else {
+            raiz = temp;
+        }
+        free(nodo);
+    } else if (nodo->der == NULL) {
+        empresa *temp = nodo->izq;
+        if (padre) {
+            if (padre->izq == nodo)
+                padre->izq = temp;
+            else
+                padre->der = temp;
+        } else {
+            raiz = temp;
+        }
+        free(nodo);
+    }
+    // Caso 3: El nodo tiene dos hijos
+    else {
+        empresa *sucesor = minimoValorNodo(nodo->der);
+        nodo->codigoRNT = sucesor->codigoRNT;
+        eliminarNodo(raiz, sucesor->codigoRNT);
+    }
+}
+
+void eliminar(){
+    int codigo;
+    cout << "Ingrese el codigo RNT del nodo que desea eliminar: ";
+    cin >> codigo;
+    eliminarNodo(raizC, codigo);
+}
+
+// Registrar una nueva empresa en el arbol
+void registrar(){
+    aux = ((struct empresa *) malloc (sizeof(struct empresa)));
+    cout<<"Ingrese el nombre de la empresa: "<<endl;
+    cin>>aux->nombreEmpresa;
+    cout<<"Ingrese el codigo RNT: "<<endl;
+    cin>>aux->codigoRNT;
+    cout<<"Ingrese el year: ";
+    cin>>aux->year;
+    cout<<"Ingrese el mes: ";
+    cin>>aux->mes;
+    cout<<"Ingrese el dia: ";
+    cin>>aux->dia;
+    aux->izq = NULL;
+    aux->der = NULL;
+    if(!raizC){
+        raizC = aux;
+    } else {
+        aux2 = raizC;
+        posicionarRNT(aux, aux2);
+    }
+
+    if(!raizF){
+        raizF = (struct empresa*)malloc(sizeof(struct empresa)); // Asignacion de memoria para raizF
+        *raizF = *aux;
+        raizF->izq = NULL;
+        raizF->der = NULL;
+    } else{
+        aux2 = raizF;
+        posicionarFecha(aux, aux2);
+    }
+} 
+
+// Recorrido Preorden del arbol principal
+void recorridoPreOrden(empresa* nodo){
+    if (nodo == NULL) {
+        return;
+    } else {
+        cout << nodo->codigoRNT << " " << nodo->nombreEmpresa << " " << nodo->year << "/" << nodo->mes << "/" << nodo->dia << endl;
+        recorridoPreOrden(nodo->izq);
+        recorridoPreOrden(nodo->der);
+    }
+}
+
+// Recorrido Inorden del arbol principal
+void recorridoInOrden(empresa* nodo){
+    if (nodo == NULL) {
+        return;
+    } else {
+        recorridoInOrden(nodo->izq);
+        cout<< nodo->codigoRNT << " " << nodo->nombreEmpresa << " " << nodo->year << "/" << nodo->mes << "/" << nodo->dia << endl;
+        recorridoInOrden(nodo->der);
+    }
+}
+
+// Recorrido Posorden del arbol principal
+void recorridoPostOrden(empresa* nodo){
+    if (nodo == NULL) {
+        return;
+    } else {
+        recorridoPostOrden(nodo->izq);
+        recorridoPostOrden(nodo->der);
+        cout << nodo->codigoRNT << " " << nodo->nombreEmpresa << " " << nodo->year << "/" << nodo->mes << "/" << nodo->dia << endl;
+    }
+}
+
+int main() {
+    int opcion;
+
+    do {
+        cout << "1. Registrar una empresa" << endl;
+        cout << "2. Recorrer arbol principal" << endl;
+        cout << "3. Recorrer sub-arbol de fecha" << endl;
+        cout << "4. Salir" << endl;
+        cout << "5. Eliminar nodo del arbol principal"<< endl;
+        cout << "Ingrese su opcion: ";
+        cin >> opcion;
+
+        switch (opcion) {
+            case 1:
+                registrar();
+                break;
+            case 2: {
+                int subopcion;
+                cout << "Recorrer arbol principal:" << endl;
+                cout << "1. Recorrer preorden" << endl;
+                cout << "2. Recorrer inorden" << endl;
+                cout << "3. Recorrer posorden" << endl;
+                cout << "Ingrese su opcion: ";
+                cin >> subopcion;
+                switch (subopcion) {
+                    case 1:
+                        cout << "Recorrido preorden en arbol principal:" << endl;
+                        recorridoPreOrden(raizC);
+                        break;
+                    case 2:
+                        cout << "Recorrido inorden en arbol principal:" << endl;
+                        recorridoInOrden(raizC);
+                        break;
+                    case 3:
+                        cout << "Recorrido posorden en arbol principal:" << endl;
+                        recorridoPostOrden(raizC);
+                        break;
+                    default:
+                        cout << "Opcion no valida. Intente de nuevo." << endl;
+                        break;
+                }
+                break;
+            }
+            case 3: {
+                int subopcion;
+                cout << "Recorrer sub-arbol de fecha:" << endl;
+                cout << "1. Recorrer preorden" << endl;
+                cout << "2. Recorrer inorden" << endl;
+                cout << "3. Recorrer posorden" << endl;
+                cout << "Ingrese su opcion: ";
+                cin >> subopcion;
+                switch (subopcion) {
+                    case 1:
+                        cout << "Recorrido preorden en sub-arbol de fecha:" << endl;
+                        recorridoPreOrden(raizF);
+                        break;
+                    case 2:
+                        cout << "Recorrido inorden en sub-arbol de fecha:" << endl;
+                        recorridoInOrden(raizF);
+                        break;
+                    case 3:
+                        cout << "Recorrido posorden en sub-arbol de fecha:" << endl;
+                        recorridoPostOrden(raizF);
+                        break;
+                    default:
+                        cout << "Opcion no valida. Intente de nuevo." << endl;
+                        break;
+                }
+                break;
+            }
+            case 4:
+                cout << "Saliendo..." << endl;
+                break;
+
+            case 5:
+                eliminar();
+                break;
+            default:
+                cout << "Opcion no valida. Intente de nuevo." << endl;
+                break;
+        }
+    } while (opcion != 4);
+
+    return 0;
+}
